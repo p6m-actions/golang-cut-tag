@@ -1,0 +1,67 @@
+name: "Go Cut Tag"
+description: "Create a semantic-version git tag for a Go module, driven by the latest tag with an optional version-line floor"
+author: "Ybor / P6M <engineering@ybor.ai>"
+
+# Define the inputs for this action
+inputs:
+  version-level:
+    description: "Version level to bump relative to the latest tag: patch, minor, or major"
+    required: false
+    default: "patch"
+  version-file:
+    description: "Optional version-line file holding '<prefix><major>.<minor>' (e.g. 'v1.2'). When present it is a FLOOR the maintainer controls; when absent the latest tag alone decides. Read-only — this action never writes it and never creates a commit."
+    required: false
+    default: ".version-line"
+  prefix:
+    description: "Tag prefix. Inferred from the version file when one exists; 'v' otherwise — the prefix `go get` expects."
+    required: false
+    default: ""
+  pre-release:
+    description: "Build a pre-release tag with a trailing epoch timestamp (e.g. 'v1.2.5-1782043845')."
+    required: false
+    default: "false"
+  working-directory:
+    description: "Directory to operate in (must be inside the git repo)"
+    required: false
+    default: "."
+  skip-push:
+    description: "Skip pushing the tag to the remote (useful for testing)"
+    required: false
+    default: "false"
+
+# Define the outputs for this action
+outputs:
+  version:
+    description: "The new version, without prefix (e.g. '1.2.5' or '1.2.5-1782043845')"
+    value: ${{ steps.cut.outputs.version }}
+  tag:
+    description: "The created git tag, with prefix (e.g. 'v1.2.5')"
+    value: ${{ steps.cut.outputs.tag }}
+  base-version:
+    description: "The release version without any pre-release suffix (e.g. '1.2.5')"
+    value: ${{ steps.cut.outputs.base-version }}
+  is-pre-release:
+    description: "'true' when a pre-release tag was created"
+    value: ${{ steps.cut.outputs.is-pre-release }}
+
+# Define the runs configuration
+runs:
+  using: "composite"
+  steps:
+    - name: Compute version and cut tag
+      id: cut
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        INPUT_VERSION_FILE: ${{ inputs.version-file }}
+        INPUT_VERSION_LEVEL: ${{ inputs.version-level }}
+        INPUT_PREFIX: ${{ inputs.prefix }}
+        INPUT_PRE_RELEASE: ${{ inputs.pre-release }}
+        INPUT_SKIP_PUSH: ${{ inputs.skip-push }}
+      run: |
+        bash "${GITHUB_ACTION_PATH}/scripts/cut-tag.sh"
+
+# Define the branding for the action in the GitHub Marketplace
+branding:
+  icon: "tag"
+  color: "blue"
